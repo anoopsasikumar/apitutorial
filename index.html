@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Understanding APIs — A No-Code Introduction</title>
+<style>
+  :root {
+    --bg: #f6f8fa; --surface: #ffffff;
+    --sidebar-bg: #1b1f24; --sidebar-text: #c9d1d9; --sidebar-active: #2ea44f;
+    --text: #1f2328; --text-muted: #656d76;
+    --accent: #2ea44f; --accent-light: #dafbe1;
+    --purple: #8250df; --purple-light: #eddeff;
+    --blue: #0969da; --blue-light: #ddf4ff;
+    --border: #d0d7de;
+    --code-bg: #161b22; --code-text: #e6edf3;
+    --code-green: #7ee787; --code-blue: #79c0ff; --code-orange: #ffa657; --code-pink: #ff9bce;
+    --warn-bg: #fff8c5; --warn-border: #d4a72c;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-display: Georgia, 'Times New Roman', serif;
+    --font-code: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:var(--font-body); background:var(--bg); color:var(--text); line-height:1.7; font-size:17px; }
+
+  #progress-bar { position:fixed; top:0; left:0; right:0; height:4px; background:var(--border); z-index:1000; }
+  #progress-fill { height:100%; width:0%; background:var(--accent); transition:width 0.4s ease; }
+
+  .layout { display:flex; min-height:100vh; }
+  .sidebar {
+    width:280px; background:var(--sidebar-bg); color:var(--sidebar-text);
+    padding:1.5rem 0; position:fixed; top:0; bottom:0; left:0;
+    overflow-y:auto; z-index:100; transition:transform 0.3s ease;
+  }
+  .sidebar-header { padding:0 1.25rem 1.25rem; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:0.5rem; }
+  .sidebar-header h1 { font-family:var(--font-display); font-size:1.15rem; color:#fff; font-weight:700; line-height:1.3; }
+  .sidebar-header p { font-size:0.78rem; color:var(--sidebar-text); margin-top:0.3rem; opacity:0.7; }
+  .nav-section { padding:0.5rem 1.25rem 0.25rem; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,255,255,0.35); font-weight:700; }
+  .nav-item {
+    display:flex; align-items:center; gap:0.6rem;
+    padding:0.5rem 1.25rem; cursor:pointer;
+    font-size:0.86rem; transition:all 0.2s;
+    border-left:3px solid transparent;
+    text-decoration:none; color:var(--sidebar-text);
+  }
+  .nav-item:hover { background:rgba(255,255,255,0.06); color:#fff; }
+  .nav-item.active { background:rgba(46,164,79,0.12); color:#fff; border-left-color:var(--sidebar-active); }
+  .nav-number {
+    width:22px; height:22px; border-radius:50%;
+    background:rgba(255,255,255,0.1);
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.7rem; font-weight:600; flex-shrink:0;
+  }
+  .nav-item.active .nav-number { background:var(--sidebar-active); color:#fff; }
+  .nav-item.completed .nav-number { background:var(--sidebar-active); color:#fff; }
+  .nav-item.completed .nav-number::after { content:'✓'; }
+  .nav-item.completed .nav-num-text { display:none; }
+
+  .menu-toggle {
+    display:none; position:fixed; top:12px; left:12px;
+    z-index:200; background:var(--sidebar-bg); color:#fff;
+    border:none; border-radius:8px; padding:8px 12px; font-size:1.2rem; cursor:pointer;
+  }
+
+  .main { flex:1; margin-left:280px; padding:2.5rem 2rem; max-width:100%; }
+  .chapter { display:none; max-width:740px; margin:0 auto; animation:fadeIn 0.35s ease; }
+  .chapter.active { display:block; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+  .chapter-eyebrow { font-size:0.78rem; font-weight:600; color:var(--accent); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.4rem; }
+  .chapter h2 { font-family:var(--font-display); font-size:1.9rem; font-weight:700; margin-bottom:0.4rem; line-height:1.25; }
+  .chapter-subtitle { font-size:1.05rem; color:var(--text-muted); margin-bottom:2rem; line-height:1.5; }
+  .chapter h3 { font-size:1.2rem; font-weight:700; margin:2rem 0 0.7rem; color:var(--text); }
+  .chapter p { margin-bottom:1rem; }
+  .chapter a { color:var(--purple); }
+
+  .analogy { background:var(--purple-light); border-left:4px solid var(--purple); padding:1rem 1.2rem; border-radius:0 8px 8px 0; margin:1.2rem 0; }
+  .analogy-label { font-weight:700; font-size:0.78rem; color:var(--purple); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.3rem; }
+  .note { background:var(--accent-light); border-left:4px solid var(--accent); padding:1rem 1.2rem; border-radius:0 8px 8px 0; margin:1.2rem 0; }
+  .note-label { font-weight:700; font-size:0.78rem; color:var(--accent); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.3rem; }
+  .warning { background:var(--warn-bg); border-left:4px solid var(--warn-border); padding:1rem 1.2rem; border-radius:0 8px 8px 0; margin:1.2rem 0; }
+  .warning-label { font-weight:700; font-size:0.78rem; color:#9a6700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.3rem; }
+  .info { background:var(--blue-light); border-left:4px solid var(--blue); padding:1rem 1.2rem; border-radius:0 8px 8px 0; margin:1.2rem 0; }
+  .info-label { font-weight:700; font-size:0.78rem; color:var(--blue); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.3rem; }
+
+  .terminal { background:var(--code-bg); border-radius:10px; margin:1.2rem 0; overflow:hidden; }
+  .terminal-bar { background:#2d333b; padding:0.45rem 1rem; display:flex; align-items:center; justify-content:space-between; }
+  .terminal-dots { display:flex; gap:6px; }
+  .terminal-dots span { width:10px; height:10px; border-radius:50%; }
+  .terminal-dots span:nth-child(1){background:#f85149} .terminal-dots span:nth-child(2){background:#f0c75e} .terminal-dots span:nth-child(3){background:#56d364}
+  .terminal-title { font-family:var(--font-code); font-size:0.72rem; color:#768390; }
+  .copy-btn { background:rgba(255,255,255,0.1); border:none; color:#768390; font-size:0.72rem; padding:3px 10px; border-radius:4px; cursor:pointer; font-family:var(--font-code); }
+  .copy-btn:hover { background:rgba(255,255,255,0.18); color:#c9d1d9; }
+  .terminal-body { padding:0.9rem 1.2rem; font-family:var(--font-code); font-size:0.85rem; color:var(--code-text); line-height:1.8; overflow-x:auto; white-space:pre-wrap; word-break:break-all; }
+  .terminal-body .prompt{color:var(--code-green)} .terminal-body .cmd{color:#fff} .terminal-body .comment{color:#768390}
+  .terminal-body .output{color:#8b949e} .terminal-body .flag{color:var(--code-orange)} .terminal-body .string{color:var(--code-blue)}
+  .terminal-body .key{color:var(--code-pink)} .terminal-body .val{color:var(--code-blue)}
+
+  .knowledge-check { background:var(--surface); border:2px solid var(--border); border-radius:10px; padding:1.4rem; margin:1.5rem 0; }
+  .kc-label { font-weight:700; font-size:0.78rem; color:var(--purple); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.5rem; }
+  .kc-question { font-weight:600; margin-bottom:0.7rem; font-size:1rem; }
+  .kc-options { display:flex; flex-direction:column; gap:0.45rem; }
+  .kc-option { padding:0.6rem 1rem; border:1.5px solid var(--border); border-radius:8px; cursor:pointer; font-size:0.92rem; transition:all 0.2s; background:var(--bg); }
+  .kc-option:hover { border-color:var(--purple); background:var(--purple-light); }
+  .kc-option.correct { border-color:var(--accent); background:var(--accent-light); pointer-events:none; }
+  .kc-option.wrong { border-color:#f85149; background:#ffeef0; pointer-events:none; }
+  .kc-option.disabled { pointer-events:none; opacity:0.5; }
+  .kc-explanation { margin-top:0.7rem; padding:0.7rem; background:var(--accent-light); border-radius:6px; font-size:0.9rem; display:none; }
+  .kc-explanation.show { display:block; }
+
+  .expandable { border:1.5px solid var(--border); border-radius:8px; margin:1.2rem 0; overflow:hidden; }
+  .expandable-header { padding:0.75rem 1rem; cursor:pointer; display:flex; justify-content:space-between; align-items:center; font-weight:600; background:var(--bg); font-size:0.92rem; }
+  .expandable-header:hover { background:#eef0f3; }
+  .expandable-arrow { transition:transform 0.3s; font-size:0.8rem; color:var(--text-muted); }
+  .expandable.open .expandable-arrow { transform:rotate(90deg); }
+  .expandable-body { padding:0 1rem; max-height:0; overflow:hidden; transition:max-height 0.3s ease, padding 0.3s ease; }
+  .expandable.open .expandable-body { padding:1rem; max-height:4000px; }
+
+  .nav-buttons { display:flex; justify-content:space-between; margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid var(--border); }
+  .nav-btn { padding:0.65rem 1.4rem; border-radius:8px; font-size:0.92rem; cursor:pointer; font-weight:600; border:1.5px solid var(--border); background:var(--surface); color:var(--text); transition:all 0.2s; font-family:var(--font-body); }
+  .nav-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .nav-btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .nav-btn.primary:hover { background:#278c41; }
+  .nav-btn:disabled { opacity:0.3; pointer-events:none; }
+
+  code { font-family:var(--font-code); background:#eff1f3; padding:0.15em 0.4em; border-radius:4px; font-size:0.86em; color:#cf222e; }
+
+  .steps { counter-reset:step; margin:1rem 0; }
+  .step { display:flex; gap:1rem; margin-bottom:1.1rem; align-items:flex-start; }
+  .step-num { width:30px; height:30px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.82rem; flex-shrink:0; margin-top:2px; }
+  .step-content { flex:1; }
+
+  .flow { display:flex; align-items:center; justify-content:center; gap:0; flex-wrap:wrap; margin:1.5rem 0; }
+  .flow-box { background:var(--surface); border:2px solid var(--border); border-radius:10px; padding:0.65rem 1rem; text-align:center; min-width:110px; }
+  .flow-box.highlight { border-color:var(--accent); background:var(--accent-light); }
+  .flow-box strong { display:block; font-size:0.9rem; }
+  .flow-box small { color:var(--text-muted); font-size:0.75rem; }
+  .flow-arrow { font-size:1.3rem; color:var(--text-muted); padding:0 0.35rem; flex-shrink:0; }
+
+  /* URL anatomy */
+  .url-anatomy { font-family:var(--font-code); font-size:0.95rem; background:var(--code-bg); border-radius:10px; padding:1.3rem; margin:1.3rem 0; overflow-x:auto; text-align:center; }
+  .url-part { padding:0.15em 0.3em; border-radius:4px; }
+  .url-legend { display:flex; flex-wrap:wrap; gap:0.6rem; margin-top:1rem; justify-content:center; }
+  .url-legend-item { display:flex; align-items:center; gap:0.4rem; font-size:0.82rem; color:var(--text-muted); }
+  .url-legend-swatch { width:14px; height:14px; border-radius:3px; flex-shrink:0; }
+
+  /* Live demo */
+  .demo-box { border:2px solid var(--accent); border-radius:12px; padding:1.4rem; margin:1.5rem 0; background:linear-gradient(135deg, var(--accent-light), var(--surface)); }
+  .demo-label { font-weight:700; font-size:0.78rem; color:var(--accent); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.6rem; display:flex; align-items:center; gap:0.4rem; }
+  .demo-label::before { content:'●'; color:var(--accent); animation:pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .demo-btn { background:var(--accent); color:#fff; border:none; padding:0.7rem 1.4rem; border-radius:8px; font-weight:600; font-size:0.95rem; cursor:pointer; font-family:var(--font-body); }
+  .demo-btn:hover { background:#278c41; }
+  .demo-btn:disabled { opacity:0.6; cursor:wait; }
+  .demo-select { padding:0.6rem 0.9rem; border-radius:8px; border:1.5px solid var(--border); font-size:0.9rem; font-family:var(--font-body); margin-right:0.6rem; }
+  .demo-result { margin-top:1rem; }
+  .demo-result-friendly { background:var(--surface); border-radius:8px; padding:1rem 1.2rem; margin-bottom:0.8rem; font-size:1rem; }
+  .demo-result-friendly strong { color:var(--accent); }
+
+  @media(max-width:768px) {
+    .sidebar{transform:translateX(-100%);width:270px} .sidebar.open{transform:translateX(0)}
+    .menu-toggle{display:block} .main{margin-left:0;padding:3.5rem 1.1rem 2rem}
+    .chapter h2{font-size:1.5rem} .flow{flex-direction:column;gap:0} .flow-arrow{transform:rotate(90deg);padding:0.2rem 0}
+    .url-anatomy { font-size:0.72rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"><div id="progress-fill"></div></div>
+<button class="menu-toggle" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+
+<div class="layout">
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>Understanding APIs</h1>
+    <p>A no-code introduction</p>
+  </div>
+  <div class="nav-section">Foundations</div>
+  <a class="nav-item active" onclick="goTo(0)" href="javascript:void(0)"><span class="nav-number"><span class="nav-num-text">1</span></span> The Problem</a>
+  <a class="nav-item" onclick="goTo(1)" href="javascript:void(0)"><span class="nav-number"><span class="nav-num-text">2</span></span> What is an API?</a>
+  <div class="nav-section">The Mechanics</div>
+  <a class="nav-item" onclick="goTo(2)" href="javascript:void(0)"><span class="nav-number"><span class="nav-num-text">3</span></span> Anatomy of a Request</a>
+  <a class="nav-item" onclick="goTo(3)" href="javascript:void(0)"><span class="nav-number"><span class="nav-num-text">4</span></span> Try a Live API</a>
+  <a class="nav-item" onclick="goTo(4)" href="javascript:void(0)"><span class="nav-number"><span class="nav-num-text">5</span></span> Anatomy of a Response</a>
+  <div class="nav-section">Real-World Use</div>
+  <a class="nav-item" onclick="goTo(5)" href="javascript:void(0)"><span class="nav-number"><span class="nav-num-text">6</span></span> API Keys</a>
+  <a class="nav-item" onclick="goTo(6)" href="javascript:void(0)"><span class="nav-number"><span class="nav-num-text">7</span></span> Errors & Status Codes</a>
+  <a class="nav-item" onclick="goTo(7)" href="javascript:void(0)"><span class="nav-number"><span class="nav-num-text">8</span></span> World Bank API</a>
+  <a class="nav-item" onclick="goTo(8)" href="javascript:void(0)"><span class="nav-number"><span class="nav-num-text">9</span></span> Toolkit & Reference</a>
+</nav>
+
+<main class="main">
+
+<!-- CH 1 -->
+<div class="chapter active" id="ch0">
+  <div class="chapter-eyebrow">Chapter 1</div>
+  <h2>The Problem</h2>
+  <p class="chapter-subtitle">Why do apps need a special way to talk to each other?</p>
+
+  <h3>A question you've probably never asked</h3>
+  <p>When you check the weather on your phone, where does that number actually come from? Your phone doesn't have its own thermometer measuring the atmosphere. Somewhere, a government meteorological department has that data on a computer. Your weather app needs to <em>ask</em> that computer for it.</p>
+
+  <p>Same story everywhere: your UPI app asking a bank for your balance, a currency converter asking for today's exchange rate, or you wanting to pull GDP figures from the World Bank into your own R script. In every case, one program needs data or a service that lives on someone else's computer.</p>
+
+  <h3>Why not just... look at their website?</h3>
+  <p>You could open the World Bank's website, find the number, and type it into your spreadsheet by hand. That works once. It falls apart the moment you need:</p>
+  <p>✦ The same number for <strong>190 countries</strong>, not one.<br>
+     ✦ Data that updates <strong>every day</strong>, not once.<br>
+     ✦ A <strong>program</strong> (not a human) to fetch it automatically.</p>
+
+  <p>Websites are built for humans to read with their eyes — headings, menus, images. They're not built for one computer program to politely ask another program for just one specific number. That requires a different kind of doorway.</p>
+
+  <div class="analogy">
+    <div class="analogy-label">Real-world analogy</div>
+    <p>A restaurant's dining room is designed for humans — menus, tables, ambience. But the kitchen also has a separate delivery entrance at the back, built specifically for suppliers dropping off exact orders: "20kg rice, 4pm, dock B." No decoration needed — just a precise, reliable way to hand over exactly what was asked for.</p>
+    <p>An API is that back entrance for computer programs.</p>
+  </div>
+
+  <p>This guide will explain, from scratch, how that back entrance works — no coding experience assumed.</p>
+
+  <div class="knowledge-check">
+    <div class="kc-label">✦ Quick check</div>
+    <div class="kc-question">Why can't a program just "read" a website the way a human does?</div>
+    <div class="kc-options">
+      <div class="kc-option" onclick="checkAnswer(this, false)">Programs are not allowed to open websites</div>
+      <div class="kc-option" onclick="checkAnswer(this, true)">Websites are designed for human eyes, not for programs requesting exact, structured data automatically</div>
+      <div class="kc-option" onclick="checkAnswer(this, false)">Websites don't contain any real data</div>
+    </div>
+    <div class="kc-explanation">Websites are built for visual browsing. Programs need a more precise, structured doorway to request and receive exact pieces of data — that's what an API provides.</div>
+  </div>
+  <div class="nav-buttons">
+    <button class="nav-btn" disabled>← Previous</button>
+    <button class="nav-btn primary" onclick="goTo(1)">Next: What is an API? →</button>
+  </div>
+</div>
+
+<!-- CH 2 -->
+<div class="chapter" id="ch1">
+  <div class="chapter-eyebrow">Chapter 2</div>
+  <h2>What is an API?</h2>
+  <p class="chapter-subtitle">The waiter who carries your order to the kitchen and brings back your food.</p>
+
+  <h3>The word itself</h3>
+  <p><strong>API</strong> stands for <strong>Application Programming Interface</strong>. That sounds abstract, so forget the acronym for a moment and focus on what it <em>does</em>: it's a defined, agreed-upon way for one piece of software to ask another for something, and get a reliable answer back.</p>
+
+  <div class="analogy">
+    <div class="analogy-label">Real-world analogy: the restaurant waiter</div>
+    <p>You (the <strong>app</strong>) don't walk into the kitchen (the <strong>server</strong>) and cook your own food. Instead:</p>
+    <p>1. You tell the <strong>waiter</strong> (the API) what you want, using the menu's language — "Table 4 would like one Chicken Biryani."<br>
+    2. The waiter carries this precise request to the kitchen.<br>
+    3. The kitchen prepares it and hands it back to the waiter.<br>
+    4. The waiter delivers it to your table in a form you can use — on a plate, not as raw ingredients.</p>
+    <p>You never need to know how the kitchen is organised, what stove they used, or who chopped the onions. You just need to know the menu (what you're allowed to ask for) and trust the waiter to deliver it correctly.</p>
+  </div>
+
+  <h3>In technical terms</h3>
+  <p>An API is a <strong>set of rules</strong> published by whoever controls the data or service (the "kitchen"), describing exactly what you're allowed to ask for and what you'll get back. When you follow those rules, you don't need to know anything about their internal systems, database, or programming language.</p>
+
+  <h3>An API you use every day without knowing it</h3>
+  <p>When you check the weather on your phone, the weather app is not measuring the atmosphere itself. It sends a request to a meteorological service's API — something like "give me the current temperature for Thiruvananthapuram" — and receives back a precise, structured answer. The app then draws that nicely on your screen with a little sun or cloud icon.</p>
+
+  <h3>Why researchers should care</h3>
+  <p>Instead of manually visiting the World Bank's website, searching for "GDP of India," and copy-pasting a number into Excel — one at a time, for every country and every year — an API lets you write a script that asks for exactly the data you need and receives it directly, ready for analysis. What would take hours of clicking becomes a few lines of code, and it can be re-run every time the data updates.</p>
+
+  <div class="knowledge-check">
+    <div class="kc-label">✦ Quick check</div>
+    <div class="kc-question">In the restaurant analogy, what does the API represent?</div>
+    <div class="kc-options">
+      <div class="kc-option" onclick="checkAnswer(this, false)">The food itself</div>
+      <div class="kc-option" onclick="checkAnswer(this, false)">The kitchen</div>
+      <div class="kc-option" onclick="checkAnswer(this, true)">The waiter who carries requests and responses between you and the kitchen</div>
+    </div>
+    <div class="kc-explanation">The API is the messenger and rulebook — it defines how you ask for things and delivers the answer, without you needing to know how the kitchen (the underlying system) actually works.</div>
+  </div>
+  <div class="nav-buttons">
+    <button class="nav-btn" onclick="goTo(0)">← Previous</button>
+    <button class="nav-btn primary" onclick="goTo(2)">Next: Anatomy of a Request →</button>
+  </div>
+</div>
+
+<!-- CH 3 -->
+<div class="chapter" id="ch2">
+  <div class="chapter-eyebrow">Chapter 3</div>
+  <h2>Anatomy of a Request</h2>
+  <p class="chapter-subtitle">Most APIs you'll encounter are asked for things using ordinary web addresses.</p>
+
+  <h3>The most common kind: web APIs</h3>
+  <p>There are several types of APIs, but the overwhelming majority you'll meet as a researcher are <strong>web APIs</strong> — you ask for data using a URL (a web address), the same kind you type into a browser. The difference is that instead of getting back a pretty webpage, you get back raw, structured data.</p>
+
+  <h3>Breaking down a URL request</h3>
+  <p>Let's dissect a real example — asking a free weather service for the current temperature in Thiruvananthapuram:</p>
+
+  <div class="url-anatomy">
+    <span class="url-part" style="background:#3d4451;color:#c9d1d9">https://api.open-meteo.com</span><span class="url-part" style="background:#4a3b5c;color:#e0c9ff">/v1/forecast</span><span class="url-part" style="background:#2d4a3a;color:#a6f0c6">?latitude=8.52&longitude=76.94</span><span class="url-part" style="background:#5c3b3b;color:#ffc9c9">&current=temperature_2m</span>
+    <div class="url-legend">
+      <div class="url-legend-item"><span class="url-legend-swatch" style="background:#3d4451"></span> The base address (which service you're asking)</div>
+      <div class="url-legend-item"><span class="url-legend-swatch" style="background:#4a3b5c"></span> The endpoint (what kind of data — a "forecast")</div>
+      <div class="url-legend-item"><span class="url-legend-swatch" style="background:#2d4a3a"></span> Parameters (location — Thiruvananthapuram's coordinates)</div>
+      <div class="url-legend-item"><span class="url-legend-swatch" style="background:#5c3b3b"></span> More parameters (which specific value you want)</div>
+    </div>
+  </div>
+
+  <h3>The four parts, explained</h3>
+  <p><strong>Base URL</strong> — Which service you're talking to. Every API publishes one, like a shop's street address.</p>
+  <p><strong>Endpoint</strong> — Which specific "menu item" you want from that service. A weather API might have separate endpoints for <code>/forecast</code>, <code>/historical</code>, and <code>/air-quality</code>. Think of endpoints as different counters within the same shop.</p>
+  <p><strong>Parameters</strong> — The details of your specific order, starting after a <code>?</code>. Each one is written as <code>name=value</code>, joined by <code>&amp;</code> symbols. This is exactly like filling in blanks on an order form: latitude, longitude, which measurement you want.</p>
+  <p><strong>Method</strong> (not visible in the URL, but important) — Most simply "ask for" data using a method called <strong>GET</strong>. This is the same thing your browser does every time you visit any webpage — you're already using GET requests dozens of times a day without knowing it.</p>
+
+  <div class="analogy">
+    <div class="analogy-label">Real-world analogy</div>
+    <p>Filling in a library request slip: "Book title: ___, Author: ___, Section: ___." The parameters are the blanks you fill in. The endpoint is which request slip you picked up (fiction request vs. journal request). The base URL is simply which library you walked into.</p>
+  </div>
+
+  <div class="note">
+    <div class="note-label">Good news</div>
+    <p>You don't need to memorise this structure. You'll usually copy an example URL from an API's documentation page and just change the parameter values to what you need.</p>
+  </div>
+
+  <div class="knowledge-check">
+    <div class="kc-label">✦ Quick check</div>
+    <div class="kc-question">In a request URL, what do "parameters" specify?</div>
+    <div class="kc-options">
+      <div class="kc-option" onclick="checkAnswer(this, false)">Which company owns the API</div>
+      <div class="kc-option" onclick="checkAnswer(this, true)">The specific details of your request, like location or date</div>
+      <div class="kc-option" onclick="checkAnswer(this, false)">The programming language used to build the API</div>
+    </div>
+    <div class="kc-explanation">Parameters are the details you fill in — like coordinates for a weather request or a currency code for an exchange rate. They come after the ? in the URL.</div>
+  </div>
+  <div class="nav-buttons">
+    <button class="nav-btn" onclick="goTo(1)">← Previous</button>
+    <button class="nav-btn primary" onclick="goTo(3)">Next: Try a Live API →</button>
+  </div>
+</div>
+
+<!-- CH 4: LIVE DEMO -->
+<div class="chapter" id="ch3">
+  <div class="chapter-eyebrow">Chapter 4</div>
+  <h2>Try a Live API — Right Now</h2>
+  <p class="chapter-subtitle">Enough theory. Let's actually call a real, live API and watch the answer come back — no coding, no sign-up, no cost.</p>
+
+  <p>Below is a genuine working demo, not a simulation. When you click the button, your browser sends a real request to a real public weather service and shows you the actual live weather right now.</p>
+
+  <div class="demo-box">
+    <div class="demo-label">Live Demo — Real API Call</div>
+    <p style="margin-bottom:0.8rem; font-size:0.92rem;">Pick a city and click the button. Your browser will make a real request to a free, keyless weather API (Open-Meteo) and show you what comes back.</p>
+    <select class="demo-select" id="city-select">
+      <option value="8.52,76.94,Thiruvananthapuram">Thiruvananthapuram</option>
+      <option value="28.61,77.21,Delhi">Delhi</option>
+      <option value="19.08,72.88,Mumbai">Mumbai</option>
+      <option value="12.97,77.59,Bengaluru">Bengaluru</option>
+      <option value="22.57,88.36,Kolkata">Kolkata</option>
+    </select>
+    <button class="demo-btn" id="weather-btn" onclick="fetchWeather()">Call the API →</button>
+    <div class="demo-result" id="weather-result"></div>
+  </div>
+
+  <h3>What just happened?</h3>
+  <p>When you clicked the button, your browser did exactly what we described in Chapter 3: it built a URL with an endpoint and parameters (the city's coordinates), sent it to <code>api.open-meteo.com</code>, and received back raw data — not a nicely designed webpage, just the facts, in a format called <strong>JSON</strong>. Your browser (or a program) then decides how to display it. We'll unpack JSON properly in the next chapter.</p>
+
+  <div class="note">
+    <div class="note-label">Try this</div>
+    <p>Change the city and click again. Notice the request happens almost instantly — this is the same round trip (request → server → response) that happens every time any app checks the weather, converts a currency, or fetches a stock price.</p>
+  </div>
+
+  <div class="nav-buttons">
+    <button class="nav-btn" onclick="goTo(2)">← Previous</button>
+    <button class="nav-btn primary" onclick="goTo(4)">Next: Anatomy of a Response →</button>
+  </div>
+</div>
+
+<!-- CH 5 -->
+<div class="chapter" id="ch4">
+  <div class="chapter-eyebrow">Chapter 5</div>
+  <h2>Anatomy of a Response</h2>
+  <p class="chapter-subtitle">What comes back from an API, and how to read it.</p>
+
+  <h3>JSON: the universal language of APIs</h3>
+  <p>Almost every API you'll encounter replies using a format called <strong>JSON</strong> (JavaScript Object Notation — but don't worry about the name). It's just a simple, structured way of writing down labelled information, designed to be easy for both humans and computers to read.</p>
+
+  <h3>A response, piece by piece</h3>
+  <p>Here's what the weather demo above actually receives, simplified:</p>
+
+  <div class="terminal">
+    <div class="terminal-bar"><div class="terminal-dots"><span></span><span></span><span></span></div><span class="terminal-title">Response from the API (JSON)</span><span></span></div>
+    <div class="terminal-body">{<br>
+&nbsp;&nbsp;<span class="key">"latitude"</span>: <span class="val">8.52</span>,<br>
+&nbsp;&nbsp;<span class="key">"longitude"</span>: <span class="val">76.94</span>,<br>
+&nbsp;&nbsp;<span class="key">"current"</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"temperature_2m"</span>: <span class="val">29.4</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"time"</span>: <span class="val">"2026-07-30T14:00"</span><br>
+&nbsp;&nbsp;}<br>
+}</div>
+  </div>
+
+  <h3>Reading this structure</h3>
+  <p>✦ Everything sits inside curly braces <code>{ }</code> — think of this as one "form" of information.<br>
+     ✦ Each line is a <strong>key</strong> (the label, in quotes, before the colon) and a <strong>value</strong> (the actual data, after the colon) — exactly like a labelled field: <code>"temperature_2m": 29.4</code> means "the field called temperature_2m has the value 29.4."<br>
+     ✦ Values can nest inside other values — notice <code>"current"</code> contains its own mini-form with more keys inside it. This lets APIs organise complex, layered information (a forecast for many days, each with many hours, each with many measurements).<br>
+     ✦ Text values are wrapped in quotes (<code>"2026-07-30T14:00"</code>); numbers are not (<code>29.4</code>).</p>
+
+  <div class="analogy">
+    <div class="analogy-label">Real-world analogy</div>
+    <p>JSON is like a filled-in form with labelled boxes: Name: ___, Age: ___, Address: { Street: ___, City: ___ }. Anyone — human or computer — can look at the label and instantly know what the value next to it means, even without seeing the original blank form.</p>
+  </div>
+
+  <h3>Why this format specifically?</h3>
+  <p>Because every value has a clear label, a program can reliably pull out exactly the piece it needs — say, just the temperature — without a human needing to read and interpret sentences. This is precisely what makes automated, repeatable data collection possible.</p>
+
+  <div class="knowledge-check">
+    <div class="kc-label">✦ Quick check</div>
+    <div class="kc-question">In JSON, what is the purpose of the "key" in a key-value pair?</div>
+    <div class="kc-options">
+      <div class="kc-option" onclick="checkAnswer(this, true)">It labels what the value actually represents</div>
+      <div class="kc-option" onclick="checkAnswer(this, false)">It encrypts the data for security</div>
+      <div class="kc-option" onclick="checkAnswer(this, false)">It's just decoration and can be ignored</div>
+    </div>
+    <div class="kc-explanation">The key is the label — like "temperature_2m" — that tells you (and any program reading it) exactly what the adjacent value means.</div>
+  </div>
+  <div class="nav-buttons">
+    <button class="nav-btn" onclick="goTo(3)">← Previous</button>
+    <button class="nav-btn primary" onclick="goTo(5)">Next: API Keys →</button>
+  </div>
+</div>
+
+<!-- CH 6 -->
+<div class="chapter" id="ch5">
+  <div class="chapter-eyebrow">Chapter 6</div>
+  <h2>API Keys</h2>
+  <p class="chapter-subtitle">Why some APIs ask you to identify yourself before letting you in.</p>
+
+  <h3>Why the weather demo needed no key</h3>
+  <p>The demo you tried in Chapter 4 worked instantly with no login. Some APIs are fully open like this — usually free services with generous usage limits, meant to be tried easily. But most APIs, especially ones tied to an account or with valuable data, require an <strong>API key</strong> before they'll respond.</p>
+
+  <h3>What is an API key?</h3>
+  <p>An API key is a long, unique string of letters and numbers — something like <code>a1b2c3d4e5f6...</code> — that identifies <em>you</em> (or your project) to the API provider. You include it with every request, and the server checks it before replying.</p>
+
+  <div class="analogy">
+    <div class="analogy-label">Real-world analogy</div>
+    <p>A library card. Anyone can walk into the public reading room (an open API), but to actually borrow books (access more data or a paid service), you need to show your card. The librarian checks your card, confirms you're a registered member, and only then hands over the book.</p>
+  </div>
+
+  <h3>Why providers require keys</h3>
+  <p>✦ <strong>Tracking usage</strong> — knowing who is making requests, and how many.<br>
+     ✦ <strong>Rate limiting</strong> — free accounts might get 1,000 requests/day; paid accounts get more (covered in the next chapter).<br>
+     ✦ <strong>Billing</strong> — some APIs charge per request; the key identifies which account to bill.<br>
+     ✦ <strong>Security</strong> — preventing anonymous, unlimited hammering of their servers.</p>
+
+  <h3>How you'd typically get and use one</h3>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>Sign up</strong> on the API provider's website (often free for basic access).</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><strong>Find your key</strong> in your account dashboard, usually under something like "API Keys" or "Credentials."</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><strong>Include it in your request</strong> — usually as another parameter in the URL, like <code>&amp;apikey=your_key_here</code>, or sometimes in a separate part of the request called a "header."</div></div>
+  </div>
+
+  <div class="terminal">
+    <div class="terminal-bar"><div class="terminal-dots"><span></span><span></span><span></span></div><span class="terminal-title">Example — a request that needs a key</span><span></span></div>
+    <div class="terminal-body">
+      <span class="string">https://api.exchangerate.example.com/v1/latest</span><span class="output">?base=USD&amp;symbols=INR&amp;</span><span class="flag">apikey=a1b2c3d4e5f6</span>
+    </div>
+  </div>
+
+  <div class="warning">
+    <div class="warning-label">Treat your key like a password</div>
+    <p>Never paste your API key into a public GitHub repository, a shared script, or a forum post. Anyone who has it can use your account's quota (or run up your bill, if it's a paid service). If you're teaching or sharing code, use a placeholder like <code>YOUR_API_KEY_HERE</code> and let each person add their own.</p>
+  </div>
+
+  <div class="nav-buttons">
+    <button class="nav-btn" onclick="goTo(4)">← Previous</button>
+    <button class="nav-btn primary" onclick="goTo(6)">Next: Errors & Status Codes →</button>
+  </div>
+</div>
+
+<!-- CH 7 -->
+<div class="chapter" id="ch6">
+  <div class="chapter-eyebrow">Chapter 7</div>
+  <h2>Errors & Status Codes</h2>
+  <p class="chapter-subtitle">What it means when an API says no — and how to read the message.</p>
+
+  <h3>Status codes: a quick health report</h3>
+  <p>Every single API response comes with a <strong>status code</strong> — a three-digit number that instantly tells you whether your request succeeded, and if not, roughly why. You've likely seen one already: the famous <strong>404</strong>, which means "not found."</p>
+
+  <div class="expandable" onclick="toggleExpand(this)">
+    <div class="expandable-header">✅ 200 — OK<span class="expandable-arrow">▶</span></div>
+    <div class="expandable-body"><p>Everything worked. The data you asked for is in the response, exactly as expected. This is the code you want to see.</p></div>
+  </div>
+  <div class="expandable" onclick="toggleExpand(this)">
+    <div class="expandable-header">❌ 400 — Bad Request<span class="expandable-arrow">▶</span></div>
+    <div class="expandable-body"><p>Something about your request was malformed — a missing parameter, wrong format, or typo. This is usually a mistake in how you built the URL. Check the API's documentation for the exact spelling and required fields.</p></div>
+  </div>
+  <div class="expandable" onclick="toggleExpand(this)">
+    <div class="expandable-header">🔒 401 — Unauthorized<span class="expandable-arrow">▶</span></div>
+    <div class="expandable-body"><p>You didn't provide a valid API key, or forgot to include one. Go back and check Chapter 6 — make sure your key is correctly included in the request.</p></div>
+  </div>
+  <div class="expandable" onclick="toggleExpand(this)">
+    <div class="expandable-header">🔍 404 — Not Found<span class="expandable-arrow">▶</span></div>
+    <div class="expandable-body"><p>The endpoint or resource you asked for doesn't exist. Often a typo in the URL, or you're asking for a country code or date that isn't in the data.</p></div>
+  </div>
+  <div class="expandable" onclick="toggleExpand(this)">
+    <div class="expandable-header">⏳ 429 — Too Many Requests<span class="expandable-arrow">▶</span></div>
+    <div class="expandable-body"><p>You've hit a <strong>rate limit</strong> — the maximum number of requests allowed in a given time window (say, 60 requests per minute). Wait a bit before trying again, or check if you need a higher-tier plan.</p></div>
+  </div>
+  <div class="expandable" onclick="toggleExpand(this)">
+    <div class="expandable-header">💥 500 — Internal Server Error<span class="expandable-arrow">▶</span></div>
+    <div class="expandable-body"><p>Something broke on the API provider's end — not your fault. Try again later, or check the provider's status page if this persists.</p></div>
+  </div>
+
+  <h3>What is a "rate limit," really?</h3>
+  <p>Almost every API restricts how often you can ask it for things, to keep their servers running smoothly for everyone. A typical free plan might allow <strong>60 requests per minute</strong> or <strong>1,000 requests per day</strong>. If you're pulling data for, say, 190 countries in a loop, you may need to add small pauses between requests, or batch your requests according to the provider's guidance.</p>
+
+  <div class="analogy">
+    <div class="analogy-label">Real-world analogy</div>
+    <p>A library might say "you may borrow up to 5 books per visit." Ask for a 6th, and you'll be politely turned away — not because anything is broken, but because you've exceeded the agreed limit. Come back later (or become a premium member) for more.</p>
+  </div>
+
+  <div class="knowledge-check">
+    <div class="kc-label">✦ Quick check</div>
+    <div class="kc-question">You get a 401 status code. What's the most likely cause?</div>
+    <div class="kc-options">
+      <div class="kc-option" onclick="checkAnswer(this, false)">The server crashed</div>
+      <div class="kc-option" onclick="checkAnswer(this, true)">Your API key is missing or invalid</div>
+      <div class="kc-option" onclick="checkAnswer(this, false)">You asked for data that doesn't exist</div>
+    </div>
+    <div class="kc-explanation">401 means "Unauthorized" — the server couldn't verify who you are, almost always because of a missing or incorrect API key.</div>
+  </div>
+  <div class="nav-buttons">
+    <button class="nav-btn" onclick="goTo(5)">← Previous</button>
+    <button class="nav-btn primary" onclick="goTo(7)">Next: World Bank API →</button>
+  </div>
+</div>
+
+<!-- CH 8 -->
+<div class="chapter" id="ch7">
+  <div class="chapter-eyebrow">Chapter 8</div>
+  <h2>The World Bank Data API</h2>
+  <p class="chapter-subtitle">Putting it together with an API directly relevant to economic research.</p>
+
+  <h3>The World Bank API</h3>
+  <p>The World Bank publishes an open, keyless API covering thousands of development indicators — GDP, inflation, population, and more — for almost every country, going back decades. No sign-up required.</p>
+
+  <div class="terminal">
+    <div class="terminal-bar"><div class="terminal-dots"><span></span><span></span><span></span></div><span class="terminal-title">Example request — India's GDP</span><button class="copy-btn" onclick="copyCmd(this, event)">Copy</button></div>
+    <div class="terminal-body">
+      <span class="string">https://api.worldbank.org/v2/country/IND/indicator/NY.GDP.MKTP.CD</span><span class="output">?format=json</span>
+    </div>
+  </div>
+
+  <p>Reading this the way we learned in Chapter 3: the base URL is the World Bank's API address. The <strong>endpoint</strong> asks for country <code>IND</code> (India) and indicator <code>NY.GDP.MKTP.CD</code> (their code for GDP in current US dollars — every indicator has a unique code, listed in their documentation). The <strong>parameter</strong> <code>format=json</code> tells it to reply in JSON rather than another format.</p>
+
+  <div class="note">
+    <div class="note-label">Where to find indicator codes</div>
+    <p>The World Bank's <a href="https://data.worldbank.org/indicator" target="_blank">data catalogue</a> lists every indicator with its code — search for what you need (e.g., "inflation," "literacy rate") and copy its code into your request.</p>
+  </div>
+
+  <h3>Why this matters for your workflow</h3>
+  <p>Instead of manually downloading a spreadsheet each time you need updated figures, a script using this API can be re-run whenever you need fresh data — for a revised draft, a referee response, or an updated teaching example — without repeating manual downloads.</p>
+
+  <div class="nav-buttons">
+    <button class="nav-btn" onclick="goTo(6)">← Previous</button>
+    <button class="nav-btn primary" onclick="goTo(8)">Next: Toolkit & Reference →</button>
+  </div>
+</div>
+
+<!-- CH 9 -->
+<div class="chapter" id="ch8">
+  <div class="chapter-eyebrow">Chapter 9</div>
+  <h2>Toolkit & Reference</h2>
+  <p class="chapter-subtitle">A quick-reference summary and where to go next.</p>
+
+  <h3>The core concepts, summarised</h3>
+  <div class="flow">
+    <div class="flow-box"><strong>Your App</strong><small>Wants some data</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box highlight"><strong>API Request</strong><small>URL + endpoint + parameters</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box"><strong>Server</strong><small>Processes the request</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box highlight"><strong>JSON Response</strong><small>Structured data back</small></div>
+  </div>
+
+  <h3>Vocabulary cheat sheet</h3>
+  <div class="terminal">
+    <div class="terminal-bar"><div class="terminal-dots"><span></span><span></span><span></span></div><span class="terminal-title">Terms you now know</span><span></span></div>
+    <div class="terminal-body">
+<span class="key">API</span>          <span class="comment">A defined way for programs to request data/services from each other</span><br>
+<span class="key">Endpoint</span>     <span class="comment">A specific "counter" within an API for one kind of request</span><br>
+<span class="key">Parameter</span>    <span class="comment">A detail of your specific request (e.g., location, date)</span><br>
+<span class="key">GET request</span> <span class="comment">Asking for data (what your browser does when loading any page)</span><br>
+<span class="key">JSON</span>         <span class="comment">The labelled, structured format most API responses use</span><br>
+<span class="key">API key</span>     <span class="comment">Your unique identifier, proving who's making the request</span><br>
+<span class="key">Status code</span> <span class="comment">A 3-digit number reporting success (200) or a specific failure</span><br>
+<span class="key">Rate limit</span>  <span class="comment">The maximum requests allowed in a given time period</span>
+    </div>
+  </div>
+
+  <h3>Tools worth knowing about</h3>
+  <p>✦ <strong>Postman</strong> — A free application for building and testing API requests without writing any code, useful for exploring an API before scripting against it.<br>
+     ✦ <strong>Your web browser</strong> — For simple, keyless GET requests, you can literally paste the URL directly into your browser's address bar and see the JSON response.<br>
+     ✦ <strong>R's <code>httr</code> or <code>httr2</code> package</strong> / <strong>Python's <code>requests</code> library</strong> — The standard tools for calling APIs from within an actual analysis script, once you're ready to move from browsing to automating.</p>
+
+  <h3>Where to go from here</h3>
+  <p>You now understand what an API is, how a request is built, what a response looks like, and why keys, errors, and rate limits exist. The natural next step is learning to call an API directly from R or Python — turning what you've clicked through by hand in this guide into a repeatable script.</p>
+
+  <div class="note">
+    <div class="note-label">You're ready</div>
+    <p>Revisit the live demo in Chapter 4 any time — try changing the city, and notice you can now explain every part of what's happening: the request being built, sent, and answered.</p>
+  </div>
+  <div class="nav-buttons">
+    <button class="nav-btn" onclick="goTo(7)">← Previous</button>
+    <button class="nav-btn primary" disabled>Guide Complete ✓</button>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+const totalChapters = 9;
+let current = 0;
+const visited = new Set([0]);
+
+function goTo(i) {
+  if (i < 0 || i >= totalChapters) return;
+  document.querySelectorAll('.chapter').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('ch' + i).classList.add('active');
+  document.querySelectorAll('.nav-item')[i].classList.add('active');
+  if (current < i) visited.add(current);
+  visited.add(i);
+  current = i;
+  document.getElementById('progress-fill').style.width = ((Math.max(...visited) + 1) / totalChapters * 100) + '%';
+  document.querySelectorAll('.nav-item').forEach((n, idx) => {
+    if (visited.has(idx) && idx !== current) n.classList.add('completed');
+    else n.classList.remove('completed');
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+function checkAnswer(el, correct) {
+  const c = el.closest('.knowledge-check');
+  c.querySelectorAll('.kc-option').forEach(o => {
+    if (o === el) o.classList.add(correct ? 'correct' : 'wrong');
+    else o.classList.add('disabled');
+  });
+  if (correct) c.querySelector('.kc-explanation').classList.add('show');
+}
+
+function toggleExpand(el) { if (el.classList.contains('expandable')) el.classList.toggle('open'); }
+
+function copyCmd(btn, e) {
+  e.stopPropagation();
+  const body = btn.closest('.terminal').querySelector('.terminal-body');
+  const text = body.textContent.trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+document.querySelector('.main').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
+
+// Live weather demo — real API call to Open-Meteo (free, no key required)
+async function fetchWeather() {
+  const btn = document.getElementById('weather-btn');
+  const resultDiv = document.getElementById('weather-result');
+  const [lat, lon, cityName] = document.getElementById('city-select').value.split(',');
+
+  btn.disabled = true;
+  btn.textContent = 'Calling API...';
+  resultDiv.innerHTML = '';
+
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    const temp = data.current.temperature_2m;
+    const wind = data.current.wind_speed_10m;
+    const time = data.current.time;
+
+    resultDiv.innerHTML = `
+      <div class="demo-result-friendly">
+        📍 <strong>${cityName}</strong> right now: <strong>${temp}°C</strong>, wind ${wind} km/h
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.3rem;">(as of ${time}, local time)</div>
+      </div>
+      <div class="terminal">
+        <div class="terminal-bar"><div class="terminal-dots"><span></span><span></span><span></span></div><span class="terminal-title">Actual URL requested</span><span></span></div>
+        <div class="terminal-body"><span class="string">${url}</span></div>
+      </div>
+      <div class="terminal">
+        <div class="terminal-bar"><div class="terminal-dots"><span></span><span></span><span></span></div><span class="terminal-title">Raw JSON response received</span><span></span></div>
+        <div class="terminal-body">${JSON.stringify(data, null, 2).replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:')}</div>
+      </div>
+    `;
+  } catch (err) {
+    resultDiv.innerHTML = `<div class="demo-result-friendly">Could not reach the API right now (${err.message}). This can happen if you're offline — try again once connected.</div>`;
+  }
+  btn.disabled = false;
+  btn.textContent = 'Call the API →';
+}
+</script>
+</body>
+</html>
